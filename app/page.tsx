@@ -4,8 +4,14 @@ import { useState, useEffect, FormEvent, useRef } from "react";
 import PostCard from '@/components/PostCard'
 import { Post } from '../types/types'
 import Link from "next/link";
+import { useMobileOpen } from "@/components/MobileOpenProvider";
+import { signOut, useSession } from "next-auth/react";
 
-
+type MobileOpenContextType = {
+  isMenuOpen: boolean
+  setIsMenuOpen: (open: boolean) => void
+  isMobile: boolean
+}
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newContent, setNewContent] = useState<string>("");
@@ -16,6 +22,8 @@ export default function Home() {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageURL, setImageURL] = useState<string | null>(null);
+  const {isMenuOpen, setIsMenuOpen, isMobile} = useMobileOpen();
+  const {data: session} = useSession();
   console.log(imageURL)
 
   useEffect(() => {
@@ -89,35 +97,39 @@ export default function Home() {
   };
 
   console.log(posts);
+  console.log(isMobile)
 
   return (
     <main className="flex justify-center gap-8">
       {/* CONTAINER THAT HOLDS NAV + FEED */}
-      <div className="grid grid-cols-[200px_1fr] w-full max-w-4xl">
+      <div className="grid w-full max-w-4xl md:grid-cols-[200px_1fr]">
         {/* LEFT NAV */}
-        <nav className="border-r border-gray-300 pr-6 flex flex-col space-y-4">
-          <Link href = "/" title = "Home" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-100 font-medium text-2xl">
+        <nav className="border-r border-gray-300 pr-6 flex flex-col space-y-4 hidden md:flex">
+          <Link href = "/" title = "Home" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer">
             <Image src="/homeImage.png" alt="Home" width={30} height={30} />
-            Feed
+            Home
           </Link>
-          <Link href = "/" title = "Profile" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-100 font-medium text-2xl">
+          <Link href = "/" title = "Profile" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer">
             <Image src="/profile.png" alt="Profile"  width={30} height={30} />
             Profile
           </Link>
-          <Link href = "/" title = "Settings" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-100 font-medium text-2xl">
+          <Link href = "/" title = "Settings" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer">
             <Image src="/settingsImage.png" alt="Settings"  width={30} height={30} />
             Settings
           </Link>
-          <Link href = "/" title = "Logout" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-100 font-medium text-2xl">
-            <Image src="/logout.png" alt="Logout"  width={30} height={30} />
-            Logout
-          </Link>
+          {session?.user &&
+            <button title = "Logout" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer" onClick = {() => signOut}>
+              <Image src="/logout.png" alt="Logout"  width={30} height={30} />
+              Logout
+            </button>
+          }
+          
         </nav>
 
         {/* FEED */}
         <main className="flex flex-col">
           {/* POST BOX */}
-          <div className="border border-gray-300 p-4 bg-white shadow-sm w-full">
+          <div className="border border-gray-300 p-4 bg-white shadow-sm sm:w-full">
             {/* INPUT */}
             <textarea
               ref={textareaRef}
@@ -160,22 +172,22 @@ export default function Home() {
             <div className="flex items-center justify-between mt-2">
               {/* Emoji / Image Buttons */}
               <div className="flex space-x-2">
-                <button className="p-2 hover:bg-gray-100 rounded-full" onClick={() => fileInputRef.current?.click()} title = "Image File Upload">
+                <button className="p-2 hover:bg-gray-200 rounded-full cursor-pointer" onClick={() => fileInputRef.current?.click()} title = "Image File Upload">
                   <img src="imageIcon.png" alt="Image" className="w-6 h-6" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-full" onClick = {handleEmojiClicker} title = "Emojis">
+                <button className="p-2 hover:bg-gray-200 rounded-full cursor-pointer" onClick = {handleEmojiClicker} title = "Emojis">
                   <img src="emojiIcon.png" alt="Emoji" className="w-6 h-6" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-full" title = "GIFs">
+                <button className="p-2 hover:bg-gray-200 rounded-full cursor-pointer" title = "GIFs">
                   <img src="gifIcon.png" alt="GIF" className="w-6 h-6" />
                 </button>
-                <button className = "p-2 hover:bg-gray-100 rounded-full" title = {isCodeMode === true ? "Close Code Editor" : "Insert Code"} onClick = {setCodeModeState}>
+                <button className = "p-2 hover:bg-gray-200 rounded-full cursor-pointer" title = {isCodeMode === true ? "Close Code Editor" : "Insert Code"} onClick = {setCodeModeState}>
                   <img src="codeSymbol.jpg" alt="Code" className="w-6 h-6" />
                 </button>
               </div>
 
               {/* Post Button */}
-              <button className="bg-black text-white px-5 py-2 font-bold rounded-full hover:bg-gray-700" onClick = {handleCreatePost}>
+              <button className="bg-black text-white px-5 py-2 font-bold rounded-full cursor-pointer hover:bg-gray-700" onClick = {handleCreatePost}>
                 Post
               </button>
             </div>
