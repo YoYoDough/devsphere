@@ -21,11 +21,11 @@ const handler: NextAuthOptions = NextAuth({
         try {
           if (account?.provider === "google") {
             // Handle Google sign-in
-            const userExistsResponse = await fetch(`http://localhost:8080/api/users/exists?email=${profile?.email}`);
+            const userExistsResponse: Response = await fetch(`http://localhost:8080/api/users/exists?email=${profile?.email}`);
     
             if (userExistsResponse.status === 404) {
               // Send Google user data to your backend
-              const response = await fetch('http://localhost:8080/api/users', {
+              const response: Response = await fetch('http://localhost:8080/api/users', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

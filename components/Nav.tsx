@@ -72,7 +72,23 @@ const Nav = (): React.JSX.Element =>  {
             />
         </div>
 
-        {!isMobile && <button className = "text-center w-24 rounded-full bg-black p-4 m-2 self-center text-white font-bold cursor-pointer hover:bg-gray-700" onClick = {() => signIn('google')}>Log In</button>}
+        {!isMobile && (
+            !session ? (
+                <button
+                className="text-center w-24 rounded-full bg-black p-4 m-2 self-center text-white font-bold cursor-pointer hover:bg-gray-700"
+                onClick={() => signIn("google")}
+                >
+                Log In
+                </button>
+            ) : (
+                <Image
+                src={session?.user?.image as string}
+                alt="Profile Image"
+                width = {60}
+                height={60}
+                />
+            )
+        )}
     </nav>
   )
 }

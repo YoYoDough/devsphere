@@ -1,11 +1,12 @@
 'use client'
 import Image from "next/image";
-import { useState, useEffect, FormEvent, useRef } from "react";
+import { useState, useEffect, FormEvent, useRef, useMemo } from "react";
 import PostCard from '@/components/PostCard'
 import { Post } from '../types/types'
 import Link from "next/link";
 import { useMobileOpen } from "@/components/MobileOpenProvider";
 import { signOut, useSession } from "next-auth/react";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 type MobileOpenContextType = {
   isMenuOpen: boolean
@@ -22,30 +23,43 @@ export default function Home() {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageURL, setImageURL] = useState<string | null>(null);
-  const {isMenuOpen, setIsMenuOpen, isMobile} = useMobileOpen();
+  const {isMobile} = useMobileOpen();
+  const [page, setPage] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const {data: session} = useSession();
   console.log(imageURL)
+  console.log(session)
 
-  useEffect(() => {
-    const fetchFeedData = async(): Promise<void> => {
-      const response: Response = await fetch("http:localhost/8080");
-      if (!response){
+  const fetchPosts = async(): Promise<void> => {
+      const res = await fetch(`http://localhost:8080/api/posts/get?page=${page}&size=30`);
+      const data = await res.json();
+      console.log(data);
+      if (!data){
         return;
       }
-      const data: Post[] = await response.json();
-      setPosts(data);
-    }
-    fetchFeedData();
-  }, [posts])
 
-  const handleCreatePost = (e: React.FormEvent) => {
+      if (data.length < 5) {
+        setHasMore(false);
+      }
+
+      setPosts((prev) => [...prev, ...data]);
+      setPage((prev) => prev + 1);
+  }
+
+  useEffect(() => {
+    fetchPosts();
+  }, [])
+  console.log(page)
+  console.log(posts)
+
+  const handleCreatePost = async(e: React.FormEvent) => {
     e.preventDefault();
     if (!newContent.trim() && !codeNewContent.trim() && !imageURL) return;
 
     const newPost: Post = {
-      id: posts.length > 0 ? posts[posts.length - 1].id + 1 : 1, // safe incremental ID
-      author: "User",
-      content: isCodeMode ? "" : newContent,
+      id: posts.length > 0 ? posts[0].id + 1 : 0, // safe incremental ID
+      author: session?.user?.name as string,
+      content: newContent,
       codeContent: isCodeMode ? codeNewContent : undefined,
       likes: 0,
       comments: 0,
@@ -53,7 +67,17 @@ export default function Home() {
       imageURL: imageURL || undefined,
     };
 
-    setPosts([...posts, newPost]);
+    const {id, ...postWithoutId} = newPost
+
+    const response = await fetch("http://localhost:8080/api/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(postWithoutId),
+    })
+
+    setPosts([newPost, ...posts]);
     setNewContent("");
     setCodeContent("");
     setImageURL(null);
@@ -95,6 +119,11 @@ export default function Home() {
     const url = URL.createObjectURL(file); // temporary URL for preview
     setImageURL(url);
   };
+
+  const postCards = 
+      posts.map((post) => (
+        <PostCard key={post.id} post={post} setPosts={() => setPosts}/>
+      ))
 
   console.log(posts);
   console.log(isMobile)
@@ -164,7 +193,7 @@ export default function Home() {
               value={codeNewContent}
               onChange={(e) => setCodeContentState(e.target.value)}
               placeholder="Type code here..."
-              className={"w-full p-2 resize-none focus:outline-none overflow-hidden rounded-md bg-gray-100 font-mono text-sm border border-gray-400"}
+              className={"w-full p-2 resize-none focus:outline-none overflow-y-auto rounded-md bg-gray-100 font-mono text-sm border border-gray-400"}
               rows={3}
             />}
 
@@ -192,13 +221,17 @@ export default function Home() {
               </button>
             </div>
           </div>
-
+          <InfiniteScroll
+           dataLength={posts.length}
+          next={fetchPosts}
+          hasMore={hasMore}
+          loader={<h4>Loading...</h4>}
+          endMessage={<p className="text-3xl font-bold">No more posts</p>}
+          scrollThreshold={0.9} // triggers earlier
+          style={{ overflow: 'visible' }}> 
+              {postCards}
+          </InfiniteScroll>
           {/* feed posts */}
-          {posts.length !== 0 && <div className="border border-gray-300 p-4 bg-white shadow-sm">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>}
         </main>
       </div>
 
