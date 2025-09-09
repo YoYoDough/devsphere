@@ -2,11 +2,18 @@ import React, { useState } from 'react'
 import { Post } from '../types/types'
 import Image from 'next/image';
 
+type Comment = {
+    id: number,
+    text: string,
+    author: string, // or a User entity if you have authentication
+    post: Post;
+}
 
 const PostCard = ({post, setPosts}: {post: Post, setPosts: any}) => {
   console.log(post)
   const [likes, setLikes] = useState<number>(post.likes);
-  const [comments, setComments] = useState<number>(post.comments);
+  const [commentsCount, setCommentsCount] = useState<number>(post.commentsCount);
+  const [commentsList, setCommentsList] = useState<Comment[]>([]);
   const [isCommenting, setIsCommenting] = useState<boolean>(false);
   const [newComment, setNewComment] = useState<string>("");
   function handleAiAnalysis(): void {
@@ -32,24 +39,16 @@ const PostCard = ({post, setPosts}: {post: Post, setPosts: any}) => {
 };
 
 const handleCommentSubmit = async () => {
-  if (!newComment.trim()) return;
-
-  setComments(comments + 1); // optimistic UI
-  setNewComment("");
-  setIsCommenting(false);
-
-  // Optional: send to backend
-  try {
-    await fetch(`http://localhost:8080/api/posts/${post.id}/comment`, {
+    const res = await fetch(`http://localhost:8080/api/posts/${post.id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: newComment }),
+      body: JSON.stringify({ text: newComment, author: "User123", createdAt: new Date().toISOString(),})
     });
-  } catch (err) {
-    console.error(err);
-    setComments(comments); // revert if failed
-  }
-};
+    const data = await res.json();
+    setCommentsCount((prev)=> prev + 1);
+    setCommentsList(prev => [...prev, data]);
+    setNewComment("");
+  };
 
   return (
     <div className="p-4 shadow-sm max-w-full min-w-0">
@@ -112,7 +111,7 @@ const handleCommentSubmit = async () => {
           onClick={() => setIsCommenting(!isCommenting)}
         >
           <span>💬</span>
-          <span>{post.comments}</span>
+          <span>{post.commentsCount}</span>
         </button>
       </div>
       {/* Comment input */}
@@ -126,7 +125,7 @@ const handleCommentSubmit = async () => {
             className="flex-1 p-2 border border-gray-300 rounded"
           />
           <button
-            className="bg-blue-500 text-white px-3 rounded"
+            className="bg-blue-500 text-white px-3 rounded cursor-pointer"
             onClick={handleCommentSubmit}
           >
             Post

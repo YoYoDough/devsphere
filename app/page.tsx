@@ -57,12 +57,13 @@ export default function Home() {
     if (!newContent.trim() && !codeNewContent.trim() && !imageURL) return;
 
     const newPost: Post = {
-      id: posts.length > 0 ? posts[0].id + 1 : 0, // safe incremental ID
+      id: posts.length > 0 ? posts[0].id + 1 : 1, // safe incremental ID
       author: session?.user?.name as string,
       content: newContent,
       codeContent: isCodeMode ? codeNewContent : undefined,
-      likes: 0,
-      comments: 0,
+      likes: 0 as number,
+      commentsCount: 0 as number,
+      commentsList: [],
       createdAt: new Date().toISOString(),
       imageURL: imageURL || undefined,
     };
@@ -76,6 +77,7 @@ export default function Home() {
       },
       body: JSON.stringify(postWithoutId),
     })
+    console.log(response?.ok)
 
     setPosts([newPost, ...posts]);
     setNewContent("");
