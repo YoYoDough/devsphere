@@ -63,6 +63,7 @@ const handler: NextAuthOptions = NextAuth({
       },
       async session({ session, token  }) {
         if (session.user) {
+          session.user.id = token.id as number,
           session.user.username = token.username as string
         }
         return session;

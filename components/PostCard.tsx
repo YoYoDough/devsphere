@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Post } from '../types/types'
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 
 type Comment = {
     id: number,
@@ -11,32 +12,72 @@ type Comment = {
 
 const PostCard = ({post, setPosts}: {post: Post, setPosts: any}) => {
   console.log(post)
-  const [likes, setLikes] = useState<number>(post.likes);
   const [commentsCount, setCommentsCount] = useState<number>(post.commentsCount);
   const [commentsList, setCommentsList] = useState<Comment[]>([]);
   const [isCommenting, setIsCommenting] = useState<boolean>(false);
   const [newComment, setNewComment] = useState<string>("");
-  function handleAiAnalysis(): void {
-    throw new Error('Function not implemented.');
-  }
+  const [likes, setLikes] = useState(post.likesCount);
+  const { data: session } = useSession();
+  const [liked, setLiked] = useState(false); // updated from backend below
 
-  const handleLike = async() => {
-    setLikes(likes + 1); // optimistic UI
+  useEffect(() => {
+    const fetchHasLiked = async () => {
+      if (!session) return;
+      try {
+        const res = await fetch(
+          `http://localhost:8080/api/posts/${post.id}/liked?email=${session?.user?.email}`
+        );
+        const data = await res.json();
+        setLiked(data);
+      } catch (err) {
+        console.error("Failed to fetch like info:", err);
+      }
+    };
 
-    // Optional: send to backend
+    fetchHasLiked();
+  }, [post.id, session]);
+
+  // Debounce backend updates
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const syncLikeToBackend = async (likeNow: boolean) => {
+    if (!session) return;
     try {
-      await fetch(`http://localhost:8080/api/posts/${post.id}/like`, {
-        method: "POST",
-      });
+      if (likeNow) {
+        await fetch(
+          `http://localhost:8080/api/posts/${post.id}/like?email=${session.user?.email}`,
+          { method: "POST" }
+        );
+      } else {
+        await fetch(
+          `http://localhost:8080/api/posts/${post.id}/unlike?email=${session.user?.email}`,
+          { method: "DELETE" }
+        );
+      }
     } catch (err) {
-      console.error(err);
-      setLikes(likes); // revert if failed
+      console.error("Failed to sync like:", err);
     }
   };
 
-  const handleCommentClick = () => {
-  setIsCommenting(true); // show input
-};
+  const handleLike = () => {
+    // optimistic UI
+    setLiked((prev) => !prev);
+    setLikes((prev) => (liked ? prev - 1 : prev + 1));
+
+    // debounce backend call
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      syncLikeToBackend(!liked);
+    }, 1000); // adjust delay as needed
+  };
+
+  
+  function handleAiAnalysis(): void {
+    throw new Error('Function not implemented.');
+  }
+  console.log(liked)
+
+
 
 const handleCommentSubmit = async () => {
     const res = await fetch(`http://localhost:8080/api/posts/${post.id}/comments`, {
@@ -103,7 +144,7 @@ const handleCommentSubmit = async () => {
           onClick={() => handleLike()}
         >
           <span>👍</span>
-          <span>{post.likes}</span>
+          <span>{likes}</span>
         </button>
 
         <button
@@ -111,7 +152,7 @@ const handleCommentSubmit = async () => {
           onClick={() => setIsCommenting(!isCommenting)}
         >
           <span>💬</span>
-          <span>{post.commentsCount}</span>
+          <span>{commentsCount}</span>
         </button>
       </div>
       {/* Comment input */}

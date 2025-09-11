@@ -61,7 +61,7 @@ export default function Home() {
       author: session?.user?.name as string,
       content: newContent,
       codeContent: isCodeMode ? codeNewContent : undefined,
-      likes: 0 as number,
+      likesCount: 0 as number,
       commentsCount: 0 as number,
       commentsList: [],
       createdAt: new Date().toISOString(),

@@ -12,7 +12,7 @@ export type Post = {
   imageURL: string | undefined,
   codeContent?: string,
   createdAt?: string;
-  likes: number;
+  likesCount: number;
   commentsCount: number;   // count
   commentsList?: Comment[]; // optional for when full comments are included
 }
