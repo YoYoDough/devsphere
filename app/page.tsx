@@ -5,6 +5,7 @@ import PostCard from '@/components/PostCard'
 import { Post } from '../types/types'
 import Link from "next/link";
 import { useMobileOpen } from "@/components/MobileOpenProvider";
+import CommentsSection from "@/components/CommentsSection";
 import { signOut, useSession } from "next-auth/react";
 import InfiniteScroll from "react-infinite-scroll-component";
 
@@ -14,6 +15,7 @@ type MobileOpenContextType = {
   isMobile: boolean
 }
 export default function Home() {
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [posts, setPosts] = useState<Post[]>([]);
   const [newContent, setNewContent] = useState<string>("");
   const [codeNewContent, setCodeContent] = useState<string>("")
@@ -124,7 +126,7 @@ export default function Home() {
 
   const postCards = 
       posts.map((post) => (
-        <PostCard key={post.id} post={post} setPosts={() => setPosts}/>
+        <PostCard key={post.id} post={post} setPosts={() => setPosts} onClick={() => setSelectedPost(post)}></PostCard> // new/>
       ))
 
   console.log(posts);
@@ -148,8 +150,8 @@ export default function Home() {
             <Image src="/settingsImage.png" alt="Settings"  width={30} height={30} />
             Settings
           </Link>
-          {session?.user &&
-            <button title = "Logout" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer" onClick = {() => signOut}>
+          {session &&
+            <button title = "Logout" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer" onClick = {() => signOut()}>
               <Image src="/logout.png" alt="Logout"  width={30} height={30} />
               Logout
             </button>
@@ -160,14 +162,17 @@ export default function Home() {
         {/* FEED */}
         <main className="flex flex-col">
           {/* POST BOX */}
+          {session && 
           <div className="border border-gray-300 p-4 bg-white shadow-sm sm:w-full">
             {/* INPUT */}
+            
             <textarea
               ref={textareaRef}
               placeholder="What's on your mind?"
               value={newContent}
               onChange={(e) => setContent(e.target.value)}
               className="w-full p-2 resize-none focus:outline-none overflow-hidden"
+              disabled = {!session}
               rows={3} // start small
             />
             <input
@@ -222,7 +227,7 @@ export default function Home() {
                 Post
               </button>
             </div>
-          </div>
+          </div>}
           <InfiniteScroll
            dataLength={posts.length}
           next={fetchPosts}
@@ -231,7 +236,24 @@ export default function Home() {
           endMessage={<p className="text-3xl font-bold">No more posts</p>}
           scrollThreshold={0.9} // triggers earlier
           style={{ overflow: 'visible' }}> 
-              {postCards}
+              {selectedPost ? (
+              <div className="p-4">
+                {/* Single Post View */}
+                <PostCard post={selectedPost} setPosts={setPosts} onClick = {() => null}/>
+                
+                {/* Comments under post */}
+                <CommentsSection postId={selectedPost.id} />
+                
+                <button
+                  className="text-blue-500 mt-4 hover:underline"
+                  onClick={() => setSelectedPost(null)}
+                >
+                  ← Back to Feed
+                </button>
+              </div>
+            ) : (
+              postCards
+            )}
           </InfiniteScroll>
           {/* feed posts */}
         </main>
