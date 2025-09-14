@@ -14,6 +14,15 @@ type MobileOpenContextType = {
   setIsMenuOpen: (open: boolean) => void
   isMobile: boolean
 }
+
+type Comment = {
+    id: number,
+    author: string,
+    text: string,
+    likes: number
+    likedByUser: boolean
+    createdAt: string,
+}
 export default function Home() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [posts, setPosts] = useState<Post[]>([]);
@@ -25,9 +34,11 @@ export default function Home() {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageURL, setImageURL] = useState<string | null>(null);
-  const {isMobile} = useMobileOpen();
+  const {isMenuOpen, setIsMenuOpen, isMobile} = useMobileOpen();
   const [page, setPage] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const [commentsList, setCommentsList] = useState<Comment[]>([]);
+  const [commentsCount, setCommentsCount] = useState(0);
   const {data: session} = useSession();
   console.log(imageURL)
   console.log(session)
@@ -126,19 +137,21 @@ export default function Home() {
 
   const postCards = 
       posts.map((post) => (
-        <PostCard key={post.id} post={post} setPosts={() => setPosts} onClick={() => setSelectedPost(post)}></PostCard> // new/>
+        <PostCard key={post.id} post={post} setSelectedPost={setSelectedPost} setPosts={setPosts} onClick={() => setSelectedPost(post)} commentsList={commentsList} commentsCount = {commentsCount}
+        setCommentsList={setCommentsList}
+        setCommentsCount={setCommentsCount}></PostCard> // new/>
       ))
 
   console.log(posts);
   console.log(isMobile)
 
   return (
-    <main className="flex justify-center gap-8">
+    <main className="flex justify-center gap-8" onClick = {()=>setIsMenuOpen(!isMenuOpen)}>
       {/* CONTAINER THAT HOLDS NAV + FEED */}
       <div className="grid w-full max-w-4xl md:grid-cols-[200px_1fr]">
         {/* LEFT NAV */}
         <nav className="border-r border-gray-300 pr-6 flex flex-col space-y-4 hidden md:flex">
-          <Link href = "/" title = "Home" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer">
+          <Link onClick = {()=>setSelectedPost(null)}href = "/" title = "Home" className="flex items-center gap-5 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-2xl cursor-pointer">
             <Image src="/homeImage.png" alt="Home" width={30} height={30} />
             Home
           </Link>
@@ -239,10 +252,13 @@ export default function Home() {
               {selectedPost ? (
               <div className="p-4">
                 {/* Single Post View */}
-                <PostCard post={selectedPost} setPosts={setPosts} onClick = {() => null}/>
+                <PostCard post={selectedPost} setSelectedPost = {setSelectedPost} setPosts={setPosts} onClick = {() => null} commentsList={commentsList} commentsCount={commentsCount}
+        setCommentsList={setCommentsList}
+        setCommentsCount={setCommentsCount}/>
                 
                 {/* Comments under post */}
-                <CommentsSection postId={selectedPost.id} />
+                <CommentsSection post={selectedPost} commentsList = {commentsList} setCommentsList={setCommentsList}
+        setCommentsCount={setCommentsCount}/>
                 
                 <button
                   className="text-blue-500 mt-4 hover:underline"

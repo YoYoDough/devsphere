@@ -30,12 +30,12 @@ const Nav = (): React.JSX.Element =>  {
         </>
     )
   return (
-    <nav className = "flex justify-between border border-gray-300 h-20 w-full p-4">
+    <nav className = "flex justify-between border border-gray-300 h-20 w-full p-4" onClick = {()=>setIsMenuOpen(!isMenuOpen)}>
         {!isMobile &&
-        <div className = "max-w-full flex items-center gap-3">
-            <Image src='/globe.svg' width = {50} height = {50} alt = "Globe" className='w-6 h-12 sm:w-10 sm:h-10 xs:w-8 xs:h-8'></Image>
-            <h1 className = "font-extrabold text-2xl sm:text-xl xs:text-lg truncate ">DevSphere</h1>
-        </div>
+        <Link href = "/" className = "max-w-full flex items-center gap-3">
+            <Image src='/logo.png' width = {100} height = {100} alt = "Logo" className='rounded'></Image>
+            <h1 className = "font-extrabold text-2xl sm:text-xl xs:text-lg truncate">DevSphere</h1>
+        </Link>
         }
 
         {/* Hamburger for mobile */}

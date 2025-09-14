@@ -3,21 +3,24 @@ import { Post } from '../types/types'
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import AnalysisModal from './AnalysisModal';
+import CommentsSection from './CommentsSection';
 
 type Comment = {
     id: number,
+    author: string,
     text: string,
-    author: string, // or a User entity if you have authentication
-    post: Post;
+    likes: number
+    likedByUser: boolean
+    createdAt: string,
 }
 
-const PostCard = ({post, setPosts, onClick}: {post: Post, setPosts: any, onClick: () => void}) => {
+const PostCard = ({post, setSelectedPost, setPosts, onClick, commentsList, commentsCount, setCommentsList, setCommentsCount}: {post: Post, setSelectedPost: any, setPosts: any, onClick: () => void, commentsList: Comment[], commentsCount: number, setCommentsList: any, setCommentsCount: any}) => {
   console.log(post)
-  const [commentsCount, setCommentsCount] = useState<number>(post.commentsCount);
-  const [commentsList, setCommentsList] = useState<Comment[]>([]);
+  console.log(setSelectedPost)
   const [isCommenting, setIsCommenting] = useState<boolean>(false);
   const [newComment, setNewComment] = useState<string>("");
   const [likes, setLikes] = useState(post.likesCount);
+  const [commentsLocalCount, setCommentsLocalCount] = useState<number>(post.commentsCount);
   const { data: session } = useSession();
   const [liked, setLiked] = useState(false); // updated from backend below
   const [isModalOpen, setModalOpen] = useState(false);
@@ -67,12 +70,23 @@ const PostCard = ({post, setPosts, onClick}: {post: Post, setPosts: any, onClick
     // optimistic UI
     setLiked((prev) => !prev);
     setLikes((prev) => (liked ? prev - 1 : prev + 1));
+    setPosts((prev: Post[])=>
+      prev.map((p: Post) =>
+        p.id === post.id ? { ...p, likesCount: !liked?  p.likesCount + 1 : p.likesCount - 1} : p
+    ))
 
+    // if this post is currently selected, update it too
+    setSelectedPost && setSelectedPost((prev: { id: number; likesCount: number; }) =>
+      prev && prev.id === post.id
+        ? { ...prev, likesCount: !liked ? prev.likesCount + 1 : prev.likesCount - 1 }
+        : prev
+    );
+  
     // debounce backend call
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
       syncLikeToBackend(!liked);
-    }, 1000); // adjust delay as needed
+    }, 100); // adjust delay as needed
   };
 
   async function handleAiAnalysis(): Promise<void> {
@@ -106,16 +120,24 @@ const PostCard = ({post, setPosts, onClick}: {post: Post, setPosts: any, onClick
 
 
 const handleCommentSubmit = async () => {
-    const res = await fetch(`http://localhost:8080/api/posts/${post.id}/comments`, {
+    const res = await fetch(`http://localhost:8080/api/comments/${post.id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: newComment, author: "User123", createdAt: new Date().toISOString(),})
+      body: JSON.stringify({ text: newComment, author: session?.user?.name, likes: 0, createdAt: new Date().toISOString()} as Comment)
     });
     const data = await res.json();
-    setCommentsCount((prev)=> prev + 1);
-    setCommentsList(prev => [...prev, data]);
+    setCommentsCount((prev: number)=> prev + 1);
+    setPosts((prevPosts: Post[]) =>
+      prevPosts?.map((p: Post) =>
+        p.id === post.id ? { ...p, commentsCount: p.commentsCount + 1 } : p
+      )
+    );
+    setCommentsLocalCount((prev: number) => prev + 1);
+    setCommentsList((prev: any) => [data, ...prev]);
+    console.log(commentsList)
     setNewComment("");
   };
+  console.log(commentsList)
 
   return (
     <div className="p-4 shadow-sm max-w-full min-w-0 hover:bg-gray-300 cursor-pointer" onClick = {onClick}>
@@ -168,15 +190,19 @@ const handleCommentSubmit = async () => {
       {/* Post Footer */}
       <div className="flex justify-between text-gray-500 text-sm mt-2">
         <button
-          className="flex items-center space-x-1 hover:text-blue-500"
-          onClick={() => handleLike()}
+          className="flex items-center space-x-1 hover:text-blue-500 text-xl transition-transform duration-200 hover:scale-150 cursor-pointer"
+          onClick={(e) =>{
+            e.stopPropagation()
+            handleLike()
+
+          } }
         >
           <span>👍</span>
-          <span>{likes}</span>
+          <span>{post.likesCount}</span>
         </button>
 
         <button
-          className="flex items-center space-x-1 hover:text-blue-500"
+          className="flex items-center space-x-1 hover:text-blue-500 text-xl transition-transform duration-200 hover:scale-150 cursor-pointer"
           onClick={(e) => {
             setIsCommenting(!isCommenting)
             e.stopPropagation()
@@ -184,7 +210,7 @@ const handleCommentSubmit = async () => {
           
         >
           <span>💬</span>
-          <span>{commentsCount}</span>
+          <span>{commentsLocalCount}</span>
         </button>
       </div>
       {/* Comment input */}
@@ -217,3 +243,8 @@ const handleCommentSubmit = async () => {
 };
 
 export default PostCard
+
+function p(value: any, index: number, array: any[]): unknown {
+  throw new Error('Function not implemented.');
+}
+
